@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { WebGPURenderer, NodeMaterial } from "three/webgpu";
+import GUI from "lil-gui";
 import {
   createDivergenceNodeMaterial,
   type DivergenceNodeMaterial,
@@ -146,6 +147,7 @@ async function init() {
   // イベントの登録・初期化時点でのサイズ設定処理
   window.addEventListener("resize", onWindowResize);
   pointerManager.init(renderer.domElement);
+  setupGui();
   onWindowResize();
 }
 
@@ -191,27 +193,25 @@ function frame(time: number) {
   const deltaT = (time - previousTime) / 1000;
 
   // 1. 外力の適用：速度場に外力を加算します。
-  if (pointerManager.isPointerDown) {
-    // 外力の注入
-    const shader = addForceShader;
-    const uniforms = shader.uniforms;
+  // 外力の注入
+  const shader = addForceShader;
+  const uniforms = shader.uniforms;
 
-    // マウスの移動距離から速度の変化を計算
-    const deltaV = pointerManager.pointer
-      .clone()
-      .sub(pointerManager.prevPointer)
-      .multiply(texelSize)
-      .multiplyScalar(simulationConfig.forceCoefficient);
-    uniforms.uData.value = dataTexture.texture;
-    uniforms.uForceCenter.value.copy(
-      pointerManager.pointer.clone().multiply(texelSize),
-    );
-    uniforms.uForceDeltaV.value.copy(deltaV);
-    uniforms.uForceRadius.value = simulationConfig.forceRadius;
+  // マウスの移動距離から速度の変化を計算
+  const deltaV = pointerManager.pointer
+    .clone()
+    .sub(pointerManager.prevPointer)
+    .multiply(texelSize)
+    .multiplyScalar(simulationConfig.forceCoefficient);
+  uniforms.uData.value = dataTexture.texture;
+  uniforms.uForceCenter.value.copy(
+    pointerManager.pointer.clone().multiply(texelSize),
+  );
+  uniforms.uForceDeltaV.value.copy(deltaV);
+  uniforms.uForceRadius.value = simulationConfig.forceRadius;
 
-    render(shader, dataRenderTarget);
-    swapTexture();
-  }
+  render(shader, dataRenderTarget);
+  swapTexture();
 
   // タイムスケールに合わせてシミュレーションステップを実行
   const stepCount = Math.min(Math.max(Math.floor(deltaT * 240), 1), 8);
@@ -279,6 +279,26 @@ function frame(time: number) {
   pointerManager.updatePreviousPointer();
   previousTime = time;
   requestAnimationFrame(frame);
+}
+
+/**
+ * lil-gui を使ったパラメーターコントロールのセットアップ
+ */
+function setupGui() {
+  const gui = new GUI();
+  const folder = gui.addFolder("Simulation");
+
+  folder
+    .add(simulationConfig, "forceRadius", 1, 200, 1)
+    .name("外力半径 (px)");
+  folder
+    .add(simulationConfig, "forceCoefficient", 0, 1000, 10)
+    .name("外力係数");
+  folder
+    .add(simulationConfig, "dissipation", 0.8, 1, 0.01)
+    .name("減衰");
+
+  folder.open();
 }
 
 /**
