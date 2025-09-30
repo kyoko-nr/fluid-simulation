@@ -16,14 +16,10 @@
 ## Coding Style & Naming Conventions
 - Language: TypeScript (ES modules). Strict typing required; avoid `any`.
 - Indentation: 2 spaces; keep line length reasonable (~100–120).
-- Filenames: kebab-case (`fluid-solver.ts`). Classes: PascalCase. Vars/funcs: camelCase.
+- Filenames: camerCase (`fluidSolver.ts`). Classes: PascalCase. Vars/funcs: camelCase.
 - Exports: prefer named exports; one module = one responsibility.
 - Formatting/Linting: ESLint + Prettier configured. Run `npm run lint` and `npm run format` before PRs.
-
-## Testing Guidelines
-- Framework: not yet configured. Recommended: Vitest for Vite projects.
-- Naming: colocate tests as `*.test.ts` next to sources or under `tests/`.
-- Example setup: `npm i -D vitest @vitest/coverage-v8` then `npx vitest` (watch) or `npx vitest --run` (CI). Aim for coverage on core simulation logic.
+- 
 
 ## Commit & Pull Request Guidelines
 - Commit style: history is minimal; adopt Conventional Commits (e.g., `feat(sim): add advection step`, `fix(renderer): correct FBO size`). Keep messages imperative and scoped.
