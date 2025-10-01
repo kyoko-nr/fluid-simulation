@@ -17,9 +17,11 @@ const simulationConfig = {
   // 1回のシミュレーションステップで行うヤコビ法の圧力計算の回数。大きいほど安定して正確性が増すが、負荷が高くなる
   solverIteration: 5,
   // マウスを外力として使用する際に影響を与える半径サイズ
-  forceRadius: 20,
+  forceRadius: 60,
   // マウスを外力として使用する際のちからの係数
   forceCoefficient: 500,
+  // 外力の減衰の鋭さ（指数）。大きいほど中心集中
+  falloffExp: 10.0,
   /**
    * 移流時の減衰
    * 1.0に近づけることで高粘度な流体のような見た目にできる
@@ -116,6 +118,7 @@ async function init() {
       uForceCenter: new THREE.Uniform(new THREE.Vector2()),
       uForceDeltaV: new THREE.Uniform(new THREE.Vector2()),
       uForceRadius: new THREE.Uniform(simulationConfig.forceRadius),
+      uFalloffExp: new THREE.Uniform(simulationConfig.falloffExp),
     },
   });
   advectVelShader = new THREE.ShaderMaterial({
@@ -163,9 +166,6 @@ async function init() {
       uTimeStep: new THREE.Uniform(0),
     },
   });
-
-  // 確認のためレンダリング用のシェーダーをデバッグ表示
-  // await debugShader(renderShader);
 
   // イベントの登録・初期化時点でのサイズ設定処理
   window.addEventListener("resize", onWindowResize);
@@ -306,6 +306,12 @@ function setupGui() {
 
   folder.add(simulationConfig, "forceRadius", 1, 200, 1).name("外力半径 (px)");
   folder.add(simulationConfig, "forceCoefficient", 0, 1000, 10).name("外力係数");
+  folder
+    .add(simulationConfig, "falloffExp", 1, 12, 0.5)
+    .name("減衰の鋭さ")
+    .onChange((v: number) => {
+      addForceShader.uniforms.uFalloffExp.value = v;
+    });
   folder.add(simulationConfig, "dissipation", 0.8, 1, 0.01).name("減衰");
 
   folder.open();
@@ -337,14 +343,3 @@ function render(material: THREE.Material, target: THREE.WebGLRenderTarget | null
 function swapTexture() {
   [dataTexture, dataRenderTarget] = [dataRenderTarget, dataTexture];
 }
-
-/**
-//  * デバッグ表示
-//  * TSLを実行する3D APIのシェーダー言語に翻訳したものをコンソール出力して確認する
-//  */
-// async function debugShader(material: NodeMaterial) {
-//   quad.material = material;
-//   const rawShader = await renderer.debug.getShaderAsync(scene, camera, quad);
-//   console.log(rawShader.vertexShader);
-//   console.log(rawShader.fragmentShader);
-// }
