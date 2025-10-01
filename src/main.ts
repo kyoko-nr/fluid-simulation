@@ -163,6 +163,7 @@ async function init() {
       uTexture: new THREE.Uniform(null),
       uTextureSize: new THREE.Uniform(new THREE.Vector2()),
       uTimeStep: new THREE.Uniform(0),
+      uColorStrength: new THREE.Uniform(0.5),
     },
   });
 
@@ -215,8 +216,7 @@ function tick(time: number) {
   const rawDt = clock.getDelta();
   const deltaT = Math.min(Math.max(rawDt, 1 / 1000), 1 / 120);
 
-  // 1. 外力の適用：速度場に外力を加算します。
-  // 外力の注入
+  // 1. 外力の適用：速度場に外力を加算します（フレームごと1回注入）
   const shader = addForceShader;
   const uniforms = shader.uniforms;
 
@@ -287,6 +287,9 @@ function setupGui() {
       addForceShader.uniforms.uFalloffExp.value = v;
     });
   folder.add(simulationConfig, "dissipation", 0.8, 1, 0.01).name("減衰");
+  folder
+    .add(renderShader.uniforms.uColorStrength, "value", 0.1, 2.0, 0.05)
+    .name("色強度");
 
   folder.open();
 }

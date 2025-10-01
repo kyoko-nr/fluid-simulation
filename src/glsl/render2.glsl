@@ -5,6 +5,7 @@ precision highp float;
 uniform sampler2D uTexture;
 uniform vec2 uTextureSize;
 uniform float uTimeStep;
+uniform float uColorStrength;
 
 const float PI = 3.14159265358979323846;
 
@@ -28,12 +29,15 @@ void main() {
 
   vec2 uv0 = gl_FragCoord.xy * uTextureSize;
   vec2 uv = vec2(uv0.x, 1.0 - uv0.y);
-  vec2 velocity = texture2D(uTexture, uv).xy;
-  float len = smoothstep(0.0, 1.0, length(velocity));
-  velocity = velocity * 0.5 + 0.5;
 
-  vec3 color = vec3(velocity.x, velocity.y, 1.0);
-  color = mix(vec3(1.0), color, len);
+  // sample/fluid-three の color.frag に合わせた可視化
+  vec2 vel = texture2D(uTexture, uv).xy;
+  float len = length(vel);
+  vel = vel * 0.5 + 0.5;
+
+  vec3 color = vec3(vel.x, vel.y, 1.0);
+  float w = clamp(len * uColorStrength, 0.0, 1.0);
+  color = mix(vec3(1.0), color, w);
 
   gl_FragColor = vec4(color, 1.0);
 }
