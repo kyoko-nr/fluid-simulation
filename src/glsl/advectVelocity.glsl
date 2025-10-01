@@ -12,11 +12,12 @@ uniform float uDissipation;
 
 // 移流を計算する
 void main() {
-  vec2 ratio = uTexelSize / min(uTexelSize.x, uTexelSize.y);
+  vec2 ratio = uTexelSize / min(uTexelSize.x, uTexelSize.y); // UV/秒
   vec2 uv = gl_FragCoord.xy * uTexelSize;
   vec4 data = texture2D(uData, uv);
 
   vec2 backUv = uv - data.xy * uDeltaT * ratio;
+  backUv = clamp(backUv, uTexelSize*0.5, 1.0-uTexelSize*0.5); // 境界
   vec2 newVal = texture2D(uData, backUv).xy;
 
   gl_FragColor = vec4(newVal, 0.0, 0.0);
