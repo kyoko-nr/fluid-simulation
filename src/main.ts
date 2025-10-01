@@ -15,7 +15,7 @@ const simulationConfig = {
   // データテクスチャー（格子）の画面サイズ比。大きいほど詳細になるが、負荷が高くなる
   pixelRatio: 0.5,
   // 1回のシミュレーションステップで行うヤコビ法の圧力計算の回数。大きいほど安定して正確性が増すが、負荷が高くなる
-  solverIteration: 5,
+  solverIteration: 10,
   // マウスを外力として使用する際に影響を与える半径サイズ
   forceRadius: 60,
   // マウスを外力として使用する際のちからの係数
@@ -31,8 +31,6 @@ const simulationConfig = {
   dissipation: 0.96,
 };
 
-// 時間差分計算用の一時変数
-let previousTime = 0.0;
 // マウス・タッチイベントを管理するオブジェクト
 const pointerManager = new PointerManager();
 
@@ -63,10 +61,10 @@ let pressureShader: THREE.ShaderMaterial;
 let subtractGradientShader: THREE.ShaderMaterial;
 let renderShader: THREE.ShaderMaterial;
 
-// 初期化
+let clock: THREE.Clock;
+
 await init();
-// 実行開始
-frame(performance.now());
+
 
 /**
  * 初期化
@@ -172,6 +170,10 @@ async function init() {
   pointerManager.init(renderer.domElement);
   setupGui();
   onWindowResize();
+
+  // アニメーション開始
+  clock = new THREE.Clock();
+  renderer.setAnimationLoop(tick);
 }
 
 /**
@@ -207,8 +209,9 @@ function onWindowResize() {
  * 毎フレーム実行する関数
  * シミュレーションの実行と画面へのレンダリングを行う
  */
-function frame(time: number) {
-  const deltaT = (time - previousTime) / 1000;
+function tick(time: number) {
+  // フレーム時間の上限をクランプして1ステップのみ実行（Proposal A）
+  const deltaT = Math.min(clock.getDelta(), 1 / 120);
 
   // 1. 外力の適用：速度場に外力を加算します。
   // 外力の注入
@@ -229,72 +232,40 @@ function frame(time: number) {
   render(shader, dataRenderTarget);
   swapTexture();
 
-  // タイムスケールに合わせてシミュレーションステップを実行
-  const stepCount = Math.min(Math.max(Math.floor(deltaT * 240), 1), 8);
-  const simulationDeltaT = deltaT / stepCount;
-  for (let i = 0; i < stepCount; i++) {
-    // 2. 移流の計算：セミラグランジュ法を使って速度場を補間し、移流を適用します。
-    {
-      // 速度の移流
-      const shader = advectVelShader;
-      const uniforms = shader.uniforms;
+  // 2. 移流の計算：セミラグランジュ法による速度の移流
+    advectVelShader.uniforms.uData.value = dataTexture.texture;
+    advectVelShader.uniforms.uDeltaT.value = deltaT;
+    advectVelShader.uniforms.uDissipation.value = simulationConfig.dissipation;
+    render(advectVelShader, dataRenderTarget);
+    swapTexture();
 
-      uniforms.uData.value = dataTexture.texture;
-      uniforms.uDeltaT.value = simulationDeltaT;
-      uniforms.uDissipation.value = simulationConfig.dissipation;
-      render(shader, dataRenderTarget);
-      swapTexture();
-    }
+  // 3. 発散の計算
+    divergenceShader.uniforms.uData.value = dataTexture.texture;
+    render(divergenceShader, dataRenderTarget);
+    swapTexture();
 
-    // 3. 移流の計算：現在速度と経過時間から前ステップの速度を参照することで移流を適用します。
-    {
-      // 発散の計算
-      const shader = divergenceShader;
-      const uniforms = shader.uniforms;
-
-      uniforms.uData.value = dataTexture.texture;
-      render(shader, dataRenderTarget);
-      swapTexture();
-    }
-
-    // 4. 圧力の計算：速度と発散から非圧縮条件を満たすように圧力を計算します。
-    for (let i = 0; i < simulationConfig.solverIteration; i++) {
-      // 圧力の計算
-      const shader = pressureShader;
-      const uniforms = shader.uniforms;
-
-      uniforms.uData.value = dataTexture.texture;
-      render(shader, dataRenderTarget);
-      swapTexture();
-    }
-
-    // 5. 速度場の更新：計算された圧力を使って速度場を更新します。
-    {
-      // 圧力勾配の減算
-      const shader = subtractGradientShader;
-      const uniforms = shader.uniforms;
-
-      uniforms.uData.value = dataTexture.texture;
-      render(shader, dataRenderTarget);
-      swapTexture();
-    }
+  // 4. 圧力の計算（ヤコビ反復を複数回）
+  for (let i = 0; i < simulationConfig.solverIteration; i++) {
+    const shader = pressureShader;
+    const uniforms = shader.uniforms;
+    uniforms.uData.value = dataTexture.texture;
+    render(shader, dataRenderTarget);
+    swapTexture();
   }
+
+  // 5. 圧力勾配の減算
+    subtractGradientShader.uniforms.uData.value = dataTexture.texture;
+    render(subtractGradientShader, dataRenderTarget);
+    swapTexture();
+
 
   // 6. 描画：更新された速度場を使って流体の見た目をレンダリングします。
-  {
-    // 描画
-    const shader = renderShader;
-    const uniforms = shader.uniforms;
-
-    uniforms.uTexture.value = dataTexture.texture;
-    uniforms.uTimeStep.value = time * 0.0001;
-    render(shader, null);
-  }
+    renderShader.uniforms.uTexture.value = dataTexture.texture;
+    renderShader.uniforms.uTimeStep.value = time * 0.0001;
+    render(renderShader, null);
 
   // 次のフレームに備えて後処理
   pointerManager.updatePreviousPointer();
-  previousTime = time;
-  requestAnimationFrame(frame);
 }
 
 /**
