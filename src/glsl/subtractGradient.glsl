@@ -5,6 +5,7 @@ precision highp float;
 
 uniform sampler2D uData;
 uniform vec2 uTexelSize;
+uniform float uDeltaT;
 
 // 速度場から圧力勾配を減算する
 void main() {
@@ -16,7 +17,8 @@ void main() {
   float up = sampleNeighborPressureNeumann(uData, uv, uTexelSize, vec2(0.0, -1.0), data.z);
   float down = sampleNeighborPressureNeumann(uData, uv, uTexelSize, vec2(0.0, 1.0), data.z);
 
-  vec2 velocity = data.xy - vec2(right - left, down - up) * 0.5;
+  float dt = clamp(uDeltaT, 0.0, 1.0);
+  vec2 velocity = data.xy - vec2(right - left, down - up) * 0.5 * dt;
   vec2 bounded = applyReflectiveBoundary(uv, uTexelSize, velocity, 1.0);
 
   gl_FragColor = vec4(bounded, data.zw);

@@ -4,6 +4,7 @@ precision highp float;
 
 uniform sampler2D uData;
 uniform vec2 uTexelSize;
+uniform float uDeltaT;
 
 // 速度場の発散を計算する
 void main() {
@@ -16,5 +17,6 @@ void main() {
   float down = sampleNeighborVelocityReflect(uData, uv, uTexelSize, vec2(0.0, 1.0), data.xy).y;
 
   float div = (right - left + down - up) * 0.5;
-  gl_FragColor = vec4(data.xyz, div);
+  float dt = max(uDeltaT, 1e-6);
+  gl_FragColor = vec4(data.xyz, div / dt);
 }

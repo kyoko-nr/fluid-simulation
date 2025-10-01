@@ -134,6 +134,7 @@ async function init() {
     uniforms: {
       uData: new THREE.Uniform(null),
       uTexelSize: new THREE.Uniform(texelSize),
+      uDeltaT: new THREE.Uniform(0),
     },
   });
   pressureShader = new THREE.ShaderMaterial({
@@ -150,6 +151,7 @@ async function init() {
     uniforms: {
       uData: new THREE.Uniform(null),
       uTexelSize: new THREE.Uniform(texelSize),
+      uDeltaT: new THREE.Uniform(0),
     },
   });
 
@@ -210,7 +212,8 @@ function onWindowResize() {
  */
 function tick(time: number) {
   // フレーム時間の上限をクランプして1ステップのみ実行（Proposal A）
-  const deltaT = Math.min(clock.getDelta(), 1 / 120);
+  const rawDt = clock.getDelta();
+  const deltaT = Math.min(Math.max(rawDt, 1 / 1000), 1 / 120);
 
   // 1. 外力の適用：速度場に外力を加算します。
   // 外力の注入
@@ -240,6 +243,7 @@ function tick(time: number) {
 
   // 3. 発散の計算
   divergenceShader.uniforms.uData.value = dataTexture.texture;
+  divergenceShader.uniforms.uDeltaT.value = deltaT;
   render(divergenceShader, dataRenderTarget);
   swapTexture();
 
@@ -254,6 +258,7 @@ function tick(time: number) {
 
   // 5. 圧力勾配の減算
   subtractGradientShader.uniforms.uData.value = dataTexture.texture;
+  subtractGradientShader.uniforms.uDeltaT.value = deltaT;
   render(subtractGradientShader, dataRenderTarget);
   swapTexture();
 
