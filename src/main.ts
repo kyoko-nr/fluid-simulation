@@ -190,13 +190,8 @@ function onWindowResize() {
   dataHeight = Math.round(newHeight * simulationConfig.pixelRatio);
   dataTexture.setSize(dataWidth, dataHeight);
   dataRenderTarget.setSize(dataWidth, dataHeight);
-  // WebGPU座標系の場合はポインタのY座標を反転する
-  // pointerManager.resizeTarget(
-  //   simulationConfig.pixelRatio,
-  //   renderer.getCoordinateSystem() === THREE.WebGPUCoordinateSystem
-  //     ? dataHeight
-  //     : 0,
-  // );
+
+  pointerManager.resizeTarget(simulationConfig.pixelRatio);
 
   // シェーダーで使用するデータテクスチャーの1ピクセルごとのサイズをシェーダー定数に設定し直す
   texelSize.set(1 / dataWidth, 1 / dataHeight);

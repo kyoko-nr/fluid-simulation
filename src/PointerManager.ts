@@ -5,7 +5,6 @@ import * as THREE from "three";
  */
 export class PointerManager extends EventTarget {
   private pixelRatio = 1.0;
-  private flipHeight = 0;
   public pointer = new THREE.Vector2(-1, -1);
   public prevPointer = new THREE.Vector2(-1, -1);
 
@@ -13,9 +12,8 @@ export class PointerManager extends EventTarget {
     target.addEventListener("mousemove", this.onPointerMove);
   }
 
-  public resizeTarget(pixelRatio: number, flipHeight: number) {
+  public resizeTarget(pixelRatio: number) {
     this.pixelRatio = pixelRatio;
-    this.flipHeight = flipHeight;
   }
 
   public updatePreviousPointer() {
@@ -28,9 +26,7 @@ export class PointerManager extends EventTarget {
 
   private updatePointer = (cx: number, cy: number) => {
     const x = cx * window.devicePixelRatio * this.pixelRatio;
-    const yBase = cy * window.devicePixelRatio * this.pixelRatio;
-    // 常にY座標を反転してシェーダーの座標系と合わせる
-    const y = this.flipHeight > 0 ? this.flipHeight - yBase : yBase;
+    const y = cy * window.devicePixelRatio * this.pixelRatio;
     this.pointer.set(x, y);
   };
 }
