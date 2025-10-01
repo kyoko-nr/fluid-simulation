@@ -91,11 +91,12 @@ async function init() {
 
   // シミュレーションデータを書き込むテクスチャーをPing-Pong用に2つ作成。
   const renderTargetOptions = {
-    wrapS: THREE.ClampToEdgeWrapping,
-    wrapT: THREE.ClampToEdgeWrapping,
-    minFilter: THREE.NearestFilter,
-    magFilter: THREE.NearestFilter,
-    format: THREE.RGBAFormat,
+    // デフォルト値にする
+    // wrapS: THREE.ClampToEdgeWrapping,
+    // wrapT: THREE.ClampToEdgeWrapping,
+    // minFilter: THREE.NearestFilter,
+    // magFilter: THREE.NearestFilter,
+    // format: THREE.RGBAFormat,
     type: THREE.FloatType,
     depthBuffer: false,
     stencilBuffer: false,
@@ -287,9 +288,7 @@ function setupGui() {
       addForceShader.uniforms.uFalloffExp.value = v;
     });
   folder.add(simulationConfig, "dissipation", 0.8, 1, 0.01).name("減衰");
-  folder
-    .add(renderShader.uniforms.uColorStrength, "value", 0.1, 2.0, 0.05)
-    .name("色強度");
+  folder.add(renderShader.uniforms.uColorStrength, "value", 0.1, 2.0, 0.05).name("色強度");
 
   folder.open();
 }
