@@ -65,7 +65,6 @@ let clock: THREE.Clock;
 
 await init();
 
-
 /**
  * 初期化
  */
@@ -233,16 +232,16 @@ function tick(time: number) {
   swapTexture();
 
   // 2. 移流の計算：セミラグランジュ法による速度の移流
-    advectVelShader.uniforms.uData.value = dataTexture.texture;
-    advectVelShader.uniforms.uDeltaT.value = deltaT;
-    advectVelShader.uniforms.uDissipation.value = simulationConfig.dissipation;
-    render(advectVelShader, dataRenderTarget);
-    swapTexture();
+  advectVelShader.uniforms.uData.value = dataTexture.texture;
+  advectVelShader.uniforms.uDeltaT.value = deltaT;
+  advectVelShader.uniforms.uDissipation.value = simulationConfig.dissipation;
+  render(advectVelShader, dataRenderTarget);
+  swapTexture();
 
   // 3. 発散の計算
-    divergenceShader.uniforms.uData.value = dataTexture.texture;
-    render(divergenceShader, dataRenderTarget);
-    swapTexture();
+  divergenceShader.uniforms.uData.value = dataTexture.texture;
+  render(divergenceShader, dataRenderTarget);
+  swapTexture();
 
   // 4. 圧力の計算（ヤコビ反復を複数回）
   for (let i = 0; i < simulationConfig.solverIteration; i++) {
@@ -254,15 +253,14 @@ function tick(time: number) {
   }
 
   // 5. 圧力勾配の減算
-    subtractGradientShader.uniforms.uData.value = dataTexture.texture;
-    render(subtractGradientShader, dataRenderTarget);
-    swapTexture();
-
+  subtractGradientShader.uniforms.uData.value = dataTexture.texture;
+  render(subtractGradientShader, dataRenderTarget);
+  swapTexture();
 
   // 6. 描画：更新された速度場を使って流体の見た目をレンダリングします。
-    renderShader.uniforms.uTexture.value = dataTexture.texture;
-    renderShader.uniforms.uTimeStep.value = time * 0.0001;
-    render(renderShader, null);
+  renderShader.uniforms.uTexture.value = dataTexture.texture;
+  renderShader.uniforms.uTimeStep.value = time * 0.0001;
+  render(renderShader, null);
 
   // 次のフレームに備えて後処理
   pointerManager.updatePreviousPointer();
