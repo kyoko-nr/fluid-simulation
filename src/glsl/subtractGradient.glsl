@@ -6,6 +6,7 @@ precision highp float;
 uniform sampler2D uData;
 uniform vec2 uTexelSize;
 
+// 速度場から圧力勾配を減算する
 void main() {
   vec2 uv = gl_FragCoord.xy * uTexelSize;
   vec4 data = texture2D(uData, uv);

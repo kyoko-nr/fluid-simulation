@@ -1,3 +1,5 @@
+// 隣接セルの圧力をサンプリングする
+// 境界外は同値（圧力勾配ゼロ）を適用
 float sampleNeighborPressureNeumann(
   sampler2D tex,
   vec2 uv,

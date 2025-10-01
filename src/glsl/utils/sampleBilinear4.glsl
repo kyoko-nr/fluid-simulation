@@ -1,3 +1,4 @@
+// テクスチャーを手動のBilinear補間でサンプリングする
 vec4 sampleBilinear4(sampler2D tex, vec2 uv, vec2 texelSize) {
   vec2 uv00 = (floor(uv / texelSize - 0.5) + 0.5) * texelSize;
   vec2 uv00Min = texelSize * 0.5;

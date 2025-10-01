@@ -1,31 +1,14 @@
 import * as THREE from "three";
-import { WebGPURenderer, NodeMaterial } from "three/webgpu";
 import GUI from "lil-gui";
-import {
-  createDivergenceNodeMaterial,
-  type DivergenceNodeMaterial,
-} from "./tsl/createDivergenceMaterial.ts";
-import {
-  type AddForceNodeMaterial,
-  createAddForceMaterial,
-} from "./tsl/createAddForceMaterial.ts";
-import {
-  createRenderMaterial2,
-  type RenderNodeMaterial2,
-} from "./tsl/createRenderMaterial2.ts";
-import {
-  type AdvectVelocityNodeMaterial,
-  createAdvectVelocityMaterial,
-} from "./tsl/createAdvectVelocityMaterial.ts";
-import {
-  createPressureJacobiMaterial,
-  type PressureJacobiNodeMaterial,
-} from "./tsl/createPressureJacobiMaterial.ts";
-import {
-  createSubtractGradientMaterial,
-  type SubtractGradientNodeMaterial,
-} from "./tsl/createSubtractGradientMaterial.ts";
-import { PointerManager } from "./PointerManager.ts";
+
+import { PointerManager } from "./PointerManager";
+import addForceFrag from "./glsl/addForce.glsl";
+import advectVelFrag from "./glsl/advectVelocity.glsl";
+import divergenceFrag from "./glsl/divergence.glsl";
+import pressureJacobiFrag from "./glsl/pressureJacobi.glsl";
+import subtractGradientFrag from "./glsl/subtractGradient.glsl";
+import render2Frag from "./glsl/render2.glsl";
+import vert from "./glsl/vert.glsl";
 
 // シミュレーション用のパラメーター
 const simulationConfig = {
@@ -52,7 +35,7 @@ let previousTime = 0.0;
 const pointerManager = new PointerManager();
 
 // Three.jsのレンダリングに必要な一式
-let renderer: WebGPURenderer;
+let renderer: THREE.WebGLRenderer;
 let scene: THREE.Scene;
 let camera: THREE.OrthographicCamera;
 let quad: THREE.Mesh;
@@ -64,19 +47,19 @@ let dataWidth = Math.round(
 let dataHeight = Math.round(
   window.innerHeight * window.devicePixelRatio * simulationConfig.pixelRatio,
 );
-let texelSize = new THREE.Vector2();
+const texelSize = new THREE.Vector2();
 
 // シミューレーション結果を格納するテクスチャー
-let dataTexture: THREE.RenderTarget;
-let dataRenderTarget: THREE.RenderTarget;
+let dataTexture: THREE.WebGLRenderTarget;
+let dataRenderTarget: THREE.WebGLRenderTarget;
 
 // シミュレーション及び描画に使用するTSLシェーダーを設定したマテリアル
-let addForceShader: AddForceNodeMaterial;
-let advectVelShader: AdvectVelocityNodeMaterial;
-let divergenceShader: DivergenceNodeMaterial;
-let pressureShader: PressureJacobiNodeMaterial;
-let subtractGradientShader: SubtractGradientNodeMaterial;
-let renderShader: RenderNodeMaterial2;
+let addForceShader: THREE.ShaderMaterial;
+let advectVelShader: THREE.ShaderMaterial;
+let divergenceShader: THREE.ShaderMaterial;
+let pressureShader: THREE.ShaderMaterial;
+let subtractGradientShader: THREE.ShaderMaterial;
+let renderShader: THREE.ShaderMaterial;
 
 // 初期化
 await init();
@@ -91,8 +74,8 @@ async function init() {
   // 本デモはTSL及びNodeMaterialを使用しているため、WebGLRendererではなくWebGPURendererを使用する
   // WebGPURendererはWebGPUが非対応の環境ではフォールバックとしてWebGLで表示される
   // WebGPURendererで強制的にWebGL表示をしたい場合は、オプションのforceWebGLをtrueにする
-  renderer = new WebGPURenderer({ antialias: false, forceWebGL: false });
-  await renderer.init();
+  renderer = new THREE.WebGLRenderer({ antialias: false });
+  // await renderer.init();
   renderer.setPixelRatio(window.devicePixelRatio);
   renderer.setSize(window.innerWidth, window.innerHeight);
   document.body.appendChild(renderer.domElement);
@@ -118,31 +101,71 @@ async function init() {
     depthBuffer: false,
     stencilBuffer: false,
   };
-  dataTexture = new THREE.RenderTarget(
-    dataWidth,
-    dataHeight,
-    renderTargetOptions,
-  );
-  dataRenderTarget = new THREE.RenderTarget(
-    dataWidth,
-    dataHeight,
-    renderTargetOptions,
-  );
+  dataTexture = new THREE.WebGLRenderTarget(dataWidth, dataHeight, renderTargetOptions);
+  dataRenderTarget = new THREE.WebGLRenderTarget(dataWidth, dataHeight, renderTargetOptions);
   clearRenderTarget(dataTexture);
   clearRenderTarget(dataRenderTarget);
 
   // シミュレーションで使用するシェーダーを作成
-  addForceShader = createAddForceMaterial();
-  advectVelShader = createAdvectVelocityMaterial();
-  divergenceShader = createDivergenceNodeMaterial();
-  pressureShader = createPressureJacobiMaterial();
-  subtractGradientShader = createSubtractGradientMaterial();
+  addForceShader = new THREE.ShaderMaterial({
+    vertexShader: vert,
+    fragmentShader: addForceFrag,
+    uniforms: {
+      uData: new THREE.Uniform(null),
+      uTexelSize: new THREE.Uniform(texelSize),
+      uForceCenter: new THREE.Uniform(new THREE.Vector2()),
+      uForceDeltaV: new THREE.Uniform(new THREE.Vector2()),
+      uForceRadius: new THREE.Uniform(simulationConfig.forceRadius),
+    },
+  });
+  advectVelShader = new THREE.ShaderMaterial({
+    vertexShader: vert,
+    fragmentShader: advectVelFrag,
+    uniforms: {
+      uData: new THREE.Uniform(null),
+      uTexelSize: new THREE.Uniform(texelSize),
+      uDeltaT: new THREE.Uniform(0),
+      uDissipation: new THREE.Uniform(simulationConfig.dissipation),
+    },
+  });
+  divergenceShader = new THREE.ShaderMaterial({
+    vertexShader: vert,
+    fragmentShader: divergenceFrag,
+    uniforms: {
+      uData: new THREE.Uniform(null),
+      uTexelSize: new THREE.Uniform(texelSize),
+    },
+  });
+  pressureShader = new THREE.ShaderMaterial({
+    vertexShader: vert,
+    fragmentShader: pressureJacobiFrag,
+    uniforms: {
+      uData: new THREE.Uniform(null),
+      uTexelSize: new THREE.Uniform(texelSize),
+    },
+  });
+  subtractGradientShader = new THREE.ShaderMaterial({
+    vertexShader: vert,
+    fragmentShader: subtractGradientFrag,
+    uniforms: {
+      uData: new THREE.Uniform(null),
+      uTexelSize: new THREE.Uniform(texelSize),
+    },
+  });
 
   // 描画に使用するシェーダーを作成
-  renderShader = createRenderMaterial2();
+  renderShader = new THREE.ShaderMaterial({
+    vertexShader: vert,
+    fragmentShader: render2Frag,
+    uniforms: {
+      uTexture: new THREE.Uniform(null),
+      uTextureSize: new THREE.Uniform(new THREE.Vector2()),
+      uTimeStep: new THREE.Uniform(0),
+    },
+  });
 
   // 確認のためレンダリング用のシェーダーをデバッグ表示
-  await debugShader(renderShader);
+  // await debugShader(renderShader);
 
   // イベントの登録・初期化時点でのサイズ設定処理
   window.addEventListener("resize", onWindowResize);
@@ -168,12 +191,12 @@ function onWindowResize() {
   dataTexture.setSize(dataWidth, dataHeight);
   dataRenderTarget.setSize(dataWidth, dataHeight);
   // WebGPU座標系の場合はポインタのY座標を反転する
-  pointerManager.resizeTarget(
-    simulationConfig.pixelRatio,
-    renderer.backend.coordinateSystem === THREE.WebGPUCoordinateSystem
-      ? dataHeight
-      : 0,
-  );
+  // pointerManager.resizeTarget(
+  //   simulationConfig.pixelRatio,
+  //   renderer.getCoordinateSystem() === THREE.WebGPUCoordinateSystem
+  //     ? dataHeight
+  //     : 0,
+  // );
 
   // シェーダーで使用するデータテクスチャーの1ピクセルごとのサイズをシェーダー定数に設定し直す
   texelSize.set(1 / dataWidth, 1 / dataHeight);
@@ -204,9 +227,7 @@ function frame(time: number) {
     .multiply(texelSize)
     .multiplyScalar(simulationConfig.forceCoefficient);
   uniforms.uData.value = dataTexture.texture;
-  uniforms.uForceCenter.value.copy(
-    pointerManager.pointer.clone().multiply(texelSize),
-  );
+  uniforms.uForceCenter.value.copy(pointerManager.pointer.clone().multiply(texelSize));
   uniforms.uForceDeltaV.value.copy(deltaV);
   uniforms.uForceRadius.value = simulationConfig.forceRadius;
 
@@ -288,15 +309,9 @@ function setupGui() {
   const gui = new GUI();
   const folder = gui.addFolder("Simulation");
 
-  folder
-    .add(simulationConfig, "forceRadius", 1, 200, 1)
-    .name("外力半径 (px)");
-  folder
-    .add(simulationConfig, "forceCoefficient", 0, 1000, 10)
-    .name("外力係数");
-  folder
-    .add(simulationConfig, "dissipation", 0.8, 1, 0.01)
-    .name("減衰");
+  folder.add(simulationConfig, "forceRadius", 1, 200, 1).name("外力半径 (px)");
+  folder.add(simulationConfig, "forceCoefficient", 0, 1000, 10).name("外力係数");
+  folder.add(simulationConfig, "dissipation", 0.8, 1, 0.01).name("減衰");
 
   folder.open();
 }
@@ -304,7 +319,7 @@ function setupGui() {
 /**
  * レンダーターゲットに書かれた内容をリセットする
  */
-function clearRenderTarget(renderTarget: THREE.RenderTarget) {
+function clearRenderTarget(renderTarget: THREE.WebGLRenderTarget) {
   renderer.setRenderTarget(renderTarget);
   renderer.clearColor();
   renderer.setRenderTarget(null);
@@ -313,7 +328,7 @@ function clearRenderTarget(renderTarget: THREE.RenderTarget) {
 /**
  * 指定したNodeMaterialで指定したターゲット（テクスチャーかフレームバッファー）にレンダリングする
  */
-function render(material: NodeMaterial, target: THREE.RenderTarget | null) {
+function render(material: THREE.Material, target: THREE.WebGLRenderTarget | null) {
   quad.material = material;
   renderer.setRenderTarget(target);
   renderer.render(scene, camera);
@@ -329,12 +344,12 @@ function swapTexture() {
 }
 
 /**
- * デバッグ表示
- * TSLを実行する3D APIのシェーダー言語に翻訳したものをコンソール出力して確認する
- */
-async function debugShader(material: NodeMaterial) {
-  quad.material = material;
-  const rawShader = await renderer.debug.getShaderAsync(scene, camera, quad);
-  console.log(rawShader.vertexShader);
-  console.log(rawShader.fragmentShader);
-}
+//  * デバッグ表示
+//  * TSLを実行する3D APIのシェーダー言語に翻訳したものをコンソール出力して確認する
+//  */
+// async function debugShader(material: NodeMaterial) {
+//   quad.material = material;
+//   const rawShader = await renderer.debug.getShaderAsync(scene, camera, quad);
+//   console.log(rawShader.vertexShader);
+//   console.log(rawShader.fragmentShader);
+// }

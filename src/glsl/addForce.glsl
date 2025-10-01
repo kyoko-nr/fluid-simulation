@@ -8,6 +8,7 @@ uniform vec2 uForceCenter;
 uniform vec2 uForceDeltaV;
 uniform float uForceRadius;
 
+// 速度に外力を与える
 void main() {
   vec2 uv = gl_FragCoord.xy * uTexelSize;
   vec4 data = texture2D(uData, uv);

@@ -1,3 +1,5 @@
+// 隣接セルの速度をサンプリングする
+// 境界外は法線成分の反射を適用
 vec2 sampleNeighborVelocityReflect(
   sampler2D tex,
   vec2 uv,

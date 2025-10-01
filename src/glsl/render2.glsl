@@ -8,9 +8,12 @@ uniform float uTimeStep;
 
 const float PI = 3.14159265358979323846;
 
+// 計算結果をレンダリングする
 void main() {
   vec2 uv0 = gl_FragCoord.xy * uTextureSize;
   vec2 uv = vec2(uv0.x, 1.0 - uv0.y);
+
+  // data.xyに速度、data.zに圧力、data.wに発散が入っている
   vec4 data = texture2D(uTexture, uv);
 
   float hueBase = fract(atan(data.y, data.x) * (1.0 / (2.0 * PI)));

@@ -5,6 +5,7 @@ precision highp float;
 uniform sampler2D uData;
 uniform vec2 uTexelSize;
 
+// Jacobi法で圧力を計算する
 void main() {
   vec2 uv = gl_FragCoord.xy * uTexelSize;
   vec4 data = texture2D(uData, uv);

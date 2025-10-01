@@ -9,6 +9,7 @@ uniform vec2 uTexelSize;
 uniform float uDeltaT;
 uniform float uDissipation;
 
+// 移流を計算する
 void main() {
   vec2 uv = gl_FragCoord.xy * uTexelSize;
   vec4 data = texture2D(uData, uv);
