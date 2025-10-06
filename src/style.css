@@ -2,3 +2,14 @@ body {
   margin: 0;
   overflow: hidden;
 }
+
+#debug-canvas {
+  position: fixed;
+  right: 10px;
+  bottom: 10px;
+  width: calc(100vw / 6);
+  height: calc(100vh / 6);
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.2);
+}

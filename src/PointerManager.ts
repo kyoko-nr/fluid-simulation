@@ -1,5 +1,7 @@
 import * as THREE from "three";
 
+const THRESHOLD = 0.01;
+
 /**
  * マウス・タッチイベントを管理して座標を保存するユーテリティー
  */
@@ -20,7 +22,15 @@ export class PointerManager extends EventTarget {
     this.prevPointer.copy(this.pointer);
   }
 
+  public getDelta() {
+    const delta = this.pointer.clone().sub(this.prevPointer)
+    return new THREE.Vector2(Math.abs(delta.x), Math.abs(delta.y))
+  }
+
   private onPointerMove = (event: MouseEvent) => {
+    if (Math.abs(this.pointer.x - event.clientX) < THRESHOLD && Math.abs(this.pointer.y - event.clientY) < THRESHOLD) {
+      return;
+    }
     this.updatePointer(event.clientX, event.clientY);
   };
 
@@ -31,16 +41,16 @@ export class PointerManager extends EventTarget {
   };
 }
 
-export interface PointerManager {
-  addEventListener(
-    type: "firstInteraction",
-    listener: (this: PointerManager, event: Event) => any,
-    options?: boolean | AddEventListenerOptions,
-  ): void;
+// export interface PointerManager {
+//   addEventListener(
+//     type: "firstInteraction",
+//     listener: (this: PointerManager, event: Event) => any,
+//     options?: boolean | AddEventListenerOptions,
+//   ): void;
 
-  removeEventListener(
-    type: "firstInteraction",
-    listener: (this: PointerManager, event: Event) => any,
-    options?: boolean | EventListenerOptions,
-  ): void;
-}
+//   removeEventListener(
+//     type: "firstInteraction",
+//     listener: (this: PointerManager, event: Event) => any,
+//     options?: boolean | EventListenerOptions,
+//   ): void;
+// }

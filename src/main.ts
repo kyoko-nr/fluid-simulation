@@ -2,6 +2,7 @@ import * as THREE from "three";
 import GUI from "lil-gui";
 
 import { PointerManager } from "./PointerManager";
+import { DebugVisualizer } from "./debug";
 import addForceFrag from "./glsl/addForce.glsl";
 import advectVelFrag from "./glsl/advectVelocity.glsl";
 import divergenceFrag from "./glsl/divergence.glsl";
@@ -17,11 +18,11 @@ const simulationConfig = {
   // 1回のシミュレーションステップで行うヤコビ法の圧力計算の回数。大きいほど安定して正確性が増すが、負荷が高くなる
   solverIteration: 10,
   // マウスを外力として使用する際に影響を与える半径サイズ
-  forceRadius: 60,
+  forceRadius: 90,
   // マウスを外力として使用する際のちからの係数
-  forceCoefficient: 500,
+  forceCoefficient: 1000,
   // 外力の減衰の鋭さ（指数）。大きいほど中心集中
-  falloffExp: 10.0,
+  falloffExp: 5.0,
   /**
    * 移流時の減衰
    * 1.0に近づけることで高粘度な流体のような見た目にできる
@@ -62,6 +63,7 @@ let subtractGradientShader: THREE.ShaderMaterial;
 let renderShader: THREE.ShaderMaterial;
 
 let clock: THREE.Clock;
+let debugVisualizer: DebugVisualizer;
 
 await init();
 
@@ -118,6 +120,9 @@ async function init() {
       uForceRadius: new THREE.Uniform(simulationConfig.forceRadius),
       uFalloffExp: new THREE.Uniform(simulationConfig.falloffExp),
     },
+    // blending: THREE.AdditiveBlending,
+    // depthWrite: false,
+    // depthTest: false,
   });
   advectVelShader = new THREE.ShaderMaterial({
     vertexShader: vert,
@@ -128,6 +133,7 @@ async function init() {
       uDeltaT: new THREE.Uniform(0),
       uDissipation: new THREE.Uniform(simulationConfig.dissipation),
     },
+    // blending: THREE.AdditiveBlending,
   });
   divergenceShader = new THREE.ShaderMaterial({
     vertexShader: vert,
@@ -168,10 +174,16 @@ async function init() {
     },
   });
 
+  // GUI のセットアップ
+  const gui = new GUI();
+  setupGui(gui);
+
+  // デバッグビジュアライザーの初期化（レンダラーを共有）
+  debugVisualizer = new DebugVisualizer(renderer);
+
   // イベントの登録・初期化時点でのサイズ設定処理
   window.addEventListener("resize", onWindowResize);
   pointerManager.init(renderer.domElement);
-  setupGui();
   onWindowResize();
 
   // アニメーション開始
@@ -218,55 +230,53 @@ function tick(time: number) {
   const deltaT = Math.min(Math.max(rawDt, 1 / 1000), 1 / 120);
 
   // 1. 外力の適用：速度場に外力を加算します（フレームごと1回注入）
-  const shader = addForceShader;
-  const uniforms = shader.uniforms;
-
   // マウスの移動距離から速度の変化を計算
-  const deltaV = pointerManager.pointer
-    .clone()
-    .sub(pointerManager.prevPointer)
+  const deltaV = pointerManager.getDelta()
     .multiply(texelSize)
     .multiplyScalar(simulationConfig.forceCoefficient);
-  uniforms.uData.value = dataTexture.texture;
-  uniforms.uForceCenter.value.copy(pointerManager.pointer.clone().multiply(texelSize));
-  uniforms.uForceDeltaV.value.copy(deltaV);
-  uniforms.uForceRadius.value = simulationConfig.forceRadius;
+  addForceShader.uniforms.uData.value = dataTexture.texture;
+  addForceShader.uniforms.uForceCenter.value.copy(pointerManager.pointer.clone().multiply(texelSize));
+  addForceShader.uniforms.uForceDeltaV.value.copy(deltaV);
+  addForceShader.uniforms.uForceRadius.value = simulationConfig.forceRadius;
 
-  render(shader, dataRenderTarget);
+  render(addForceShader, dataRenderTarget);
   swapTexture();
 
   // 2. 移流の計算：セミラグランジュ法による速度の移流
-  advectVelShader.uniforms.uData.value = dataTexture.texture;
-  advectVelShader.uniforms.uDeltaT.value = deltaT;
-  advectVelShader.uniforms.uDissipation.value = simulationConfig.dissipation;
-  render(advectVelShader, dataRenderTarget);
-  swapTexture();
+  // advectVelShader.uniforms.uData.value = dataTexture.texture;
+  // advectVelShader.uniforms.uDeltaT.value = deltaT;
+  // advectVelShader.uniforms.uDissipation.value = simulationConfig.dissipation;
+  // render(advectVelShader, dataRenderTarget);
+  // swapTexture();
 
   // 3. 発散の計算
-  divergenceShader.uniforms.uData.value = dataTexture.texture;
-  divergenceShader.uniforms.uDeltaT.value = deltaT;
-  render(divergenceShader, dataRenderTarget);
-  swapTexture();
+  // divergenceShader.uniforms.uData.value = dataTexture.texture;
+  // divergenceShader.uniforms.uDeltaT.value = deltaT;
+  // render(divergenceShader, dataRenderTarget);
+  // swapTexture();
 
-  // 4. 圧力の計算（ヤコビ反復を複数回）
-  for (let i = 0; i < simulationConfig.solverIteration; i++) {
-    const shader = pressureShader;
-    const uniforms = shader.uniforms;
-    uniforms.uData.value = dataTexture.texture;
-    render(shader, dataRenderTarget);
-    swapTexture();
-  }
+  // // 4. 圧力の計算（ヤコビ反復を複数回）
+  // for (let i = 0; i < simulationConfig.solverIteration; i++) {
+  //   const shader = pressureShader;
+  //   const uniforms = shader.uniforms;
+  //   uniforms.uData.value = dataTexture.texture;
+  //   render(shader, dataRenderTarget);
+  //   swapTexture();
+  // }
 
-  // 5. 圧力勾配の減算
-  subtractGradientShader.uniforms.uData.value = dataTexture.texture;
-  subtractGradientShader.uniforms.uDeltaT.value = deltaT;
-  render(subtractGradientShader, dataRenderTarget);
-  swapTexture();
+  // // 5. 圧力勾配の減算
+  // subtractGradientShader.uniforms.uData.value = dataTexture.texture;
+  // subtractGradientShader.uniforms.uDeltaT.value = deltaT;
+  // render(subtractGradientShader, dataRenderTarget);
+  // swapTexture();
 
-  // 6. 描画：更新された速度場を使って流体の見た目をレンダリングします。
-  renderShader.uniforms.uTexture.value = dataTexture.texture;
-  renderShader.uniforms.uTimeStep.value = time * 0.0001;
-  render(renderShader, null);
+  // // 6. 描画：更新された速度場を使って流体の見た目をレンダリングします。
+  // renderShader.uniforms.uTexture.value = dataTexture.texture;
+  // renderShader.uniforms.uTimeStep.value = time * 0.0001;
+  // render(renderShader, null);
+
+  // デバッグビジュアライザーで速度場を表示
+  debugVisualizer.render(dataTexture.texture);
 
   // 次のフレームに備えて後処理
   pointerManager.updatePreviousPointer();
@@ -275,8 +285,7 @@ function tick(time: number) {
 /**
  * lil-gui を使ったパラメーターコントロールのセットアップ
  */
-function setupGui() {
-  const gui = new GUI();
+function setupGui(gui: GUI) {
   const folder = gui.addFolder("Simulation");
 
   folder.add(simulationConfig, "forceRadius", 1, 200, 1).name("外力半径 (px)");
@@ -284,8 +293,8 @@ function setupGui() {
   folder
     .add(simulationConfig, "falloffExp", 1, 12, 0.5)
     .name("減衰の鋭さ")
-    .onChange((v: number) => {
-      addForceShader.uniforms.uFalloffExp.value = v;
+    .onChange((value: number) => {
+      addForceShader.uniforms.uFalloffExp.value = value;
     });
   folder.add(simulationConfig, "dissipation", 0.8, 1, 0.01).name("減衰");
   folder.add(renderShader.uniforms.uColorStrength, "value", 0.1, 2.0, 0.05).name("色強度");
