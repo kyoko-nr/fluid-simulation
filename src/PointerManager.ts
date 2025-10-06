@@ -23,8 +23,7 @@ export class PointerManager extends EventTarget {
   }
 
   public getDelta() {
-    const delta = this.pointer.clone().sub(this.prevPointer)
-    return new THREE.Vector2(Math.abs(delta.x), Math.abs(delta.y))
+    return this.pointer.clone().sub(this.prevPointer)
   }
 
   private onPointerMove = (event: MouseEvent) => {
