@@ -229,6 +229,13 @@ function tick(time: number) {
   const rawDt = clock.getDelta();
   const deltaT = Math.min(Math.max(rawDt, 1 / 1000), 1 / 120);
 
+  // 2. 移流の計算：セミラグランジュ法による速度の移流
+  advectVelShader.uniforms.uData.value = dataTexture.texture;
+  advectVelShader.uniforms.uDeltaT.value = deltaT;
+  advectVelShader.uniforms.uDissipation.value = simulationConfig.dissipation;
+  render(advectVelShader, dataRenderTarget);
+  swapTexture();
+
   // 1. 外力の適用：速度場に外力を加算します（フレームごと1回注入）
   // マウスの移動距離から速度の変化を計算
   const deltaV = pointerManager.getDelta()
@@ -242,18 +249,12 @@ function tick(time: number) {
   render(addForceShader, dataRenderTarget);
   swapTexture();
 
-  // 2. 移流の計算：セミラグランジュ法による速度の移流
-  // advectVelShader.uniforms.uData.value = dataTexture.texture;
-  // advectVelShader.uniforms.uDeltaT.value = deltaT;
-  // advectVelShader.uniforms.uDissipation.value = simulationConfig.dissipation;
-  // render(advectVelShader, dataRenderTarget);
-  // swapTexture();
 
   // 3. 発散の計算
-  // divergenceShader.uniforms.uData.value = dataTexture.texture;
-  // divergenceShader.uniforms.uDeltaT.value = deltaT;
-  // render(divergenceShader, dataRenderTarget);
-  // swapTexture();
+  divergenceShader.uniforms.uData.value = dataTexture.texture;
+  divergenceShader.uniforms.uDeltaT.value = deltaT;
+  render(divergenceShader, dataRenderTarget);
+  swapTexture();
 
   // // 4. 圧力の計算（ヤコビ反復を複数回）
   // for (let i = 0; i < simulationConfig.solverIteration; i++) {
