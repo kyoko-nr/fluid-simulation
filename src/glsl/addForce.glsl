@@ -34,7 +34,7 @@ void main() {
   float d = 1.0-min(len, 1.0);
   d *= d;
 
-  vec2 force = applyReflectiveBoundary(uv, uTexelSize, vec2(uForceDeltaV * d), 1.0);
+  vec2 force = applyReflectiveBoundary(uv, uTexelSize, vec2(vOld + uForceDeltaV * d), 1.0);
 
   // vec2 force = (vOld + uForceDeltaV * d);
 

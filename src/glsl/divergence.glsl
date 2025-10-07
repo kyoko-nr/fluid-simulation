@@ -4,7 +4,6 @@ precision highp float;
 
 uniform sampler2D uData;
 uniform vec2 uTexelSize;
-uniform float uDeltaT;
 
 varying vec2 vUv;
 
@@ -26,6 +25,5 @@ void main() {
 
   float div = (right - left + down - up) * 0.5;
   // dtが0.0にならないように最小値を設定
-  float dt = max(uDeltaT, 1e-6);
   gl_FragColor = vec4(data.xy, data.z,div / 0.014);
 }

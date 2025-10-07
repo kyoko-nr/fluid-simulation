@@ -18,9 +18,9 @@ const simulationConfig = {
   // 1回のシミュレーションステップで行うヤコビ法の圧力計算の回数。大きいほど安定して正確性が増すが、負荷が高くなる
   solverIteration: 10,
   // マウスを外力として使用する際に影響を与える半径サイズ
-  forceRadius: 30,
+  forceRadius: 20,
   // マウスを外力として使用する際のちからの係数
-  forceCoefficient: 50,
+  forceCoefficient: 300,
   // 外力の減衰の鋭さ（指数）。大きいほど中心集中
   falloffExp: 5.0,
   /**
@@ -29,7 +29,7 @@ const simulationConfig = {
    * 1以上にはしない
    * あくまで粘度っぽさであり、粘性項とは無関係
    */
-  dissipation: 0.96,
+  dissipation: 0.99,
 };
 
 // マウス・タッチイベントを管理するオブジェクト
@@ -53,8 +53,6 @@ const texelSize = new THREE.Vector2();
 // シミューレーション結果を格納するテクスチャー
 let dataTexture: THREE.WebGLRenderTarget;
 let dataRenderTarget: THREE.WebGLRenderTarget;
-
-let tempPoissonTexture: THREE.WebGLRenderTarget;
 
 // シミュレーション及び描画に使用するTSLシェーダーを設定したマテリアル
 let addForceShader: THREE.ShaderMaterial;
@@ -109,9 +107,6 @@ async function init() {
   dataRenderTarget = new THREE.WebGLRenderTarget(dataWidth, dataHeight, renderTargetOptions);
   clearRenderTarget(dataTexture);
   clearRenderTarget(dataRenderTarget);
-
-  tempPoissonTexture = new THREE.WebGLRenderTarget(dataWidth, dataHeight, renderTargetOptions);
-  clearRenderTarget(tempPoissonTexture);
 
   // シミュレーションで使用するシェーダーを作成
   addForceShader = new THREE.ShaderMaterial({
@@ -256,7 +251,6 @@ function tick(time: number) {
 
   // 3. 発散の計算
   divergenceShader.uniforms.uData.value = dataTexture.texture;
-  divergenceShader.uniforms.uDeltaT.value = deltaT;
   render(divergenceShader, dataRenderTarget);
   swapTexture();
 
@@ -268,15 +262,14 @@ function tick(time: number) {
   }
 
   // 5. 圧力勾配の減算
-  // subtractGradientShader.uniforms.uData.value = dataTexture.texture;
-  // subtractGradientShader.uniforms.uDeltaT.value = deltaT;
-  // render(subtractGradientShader, tempPoissonTexture);
-  // swapTexture();
+  subtractGradientShader.uniforms.uData.value = dataTexture.texture;
+  render(subtractGradientShader, dataRenderTarget);
+  swapTexture();
 
-  // // 6. 描画：更新された速度場を使って流体の見た目をレンダリングします。
-  // renderShader.uniforms.uTexture.value = dataTexture.texture;
-  // renderShader.uniforms.uTimeStep.value = time * 0.0001;
-  // render(renderShader, null);
+  // 6. 描画：更新された速度場を使って流体の見た目をレンダリングします。
+  renderShader.uniforms.uTexture.value = dataTexture.texture;
+  renderShader.uniforms.uTimeStep.value = time * 0.0001;
+  render(renderShader, null);
 
   // デバッグビジュアライザーで速度場を表示
   debugVisualizer.render(dataTexture.texture);
