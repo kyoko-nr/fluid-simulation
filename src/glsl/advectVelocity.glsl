@@ -23,5 +23,5 @@ void main() {
   backUv = clamp(backUv, uTexelSize*0.5, 1.0-uTexelSize*0.5); // 境界
   vec2 newVal = texture2D(uData, backUv).xy * uDissipation;
 
-  gl_FragColor = vec4(newVal, 0.0, 0.0);
+  gl_FragColor = vec4(newVal,data.zw);
 }

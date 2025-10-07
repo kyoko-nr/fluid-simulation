@@ -18,9 +18,9 @@ const simulationConfig = {
   // 1回のシミュレーションステップで行うヤコビ法の圧力計算の回数。大きいほど安定して正確性が増すが、負荷が高くなる
   solverIteration: 10,
   // マウスを外力として使用する際に影響を与える半径サイズ
-  forceRadius: 90,
+  forceRadius: 30,
   // マウスを外力として使用する際のちからの係数
-  forceCoefficient: 1000,
+  forceCoefficient: 50,
   // 外力の減衰の鋭さ（指数）。大きいほど中心集中
   falloffExp: 5.0,
   /**
@@ -53,6 +53,8 @@ const texelSize = new THREE.Vector2();
 // シミューレーション結果を格納するテクスチャー
 let dataTexture: THREE.WebGLRenderTarget;
 let dataRenderTarget: THREE.WebGLRenderTarget;
+
+let tempPoissonTexture: THREE.WebGLRenderTarget;
 
 // シミュレーション及び描画に使用するTSLシェーダーを設定したマテリアル
 let addForceShader: THREE.ShaderMaterial;
@@ -107,6 +109,9 @@ async function init() {
   dataRenderTarget = new THREE.WebGLRenderTarget(dataWidth, dataHeight, renderTargetOptions);
   clearRenderTarget(dataTexture);
   clearRenderTarget(dataRenderTarget);
+
+  tempPoissonTexture = new THREE.WebGLRenderTarget(dataWidth, dataHeight, renderTargetOptions);
+  clearRenderTarget(tempPoissonTexture);
 
   // シミュレーションで使用するシェーダーを作成
   addForceShader = new THREE.ShaderMaterial({
@@ -249,26 +254,23 @@ function tick(time: number) {
   render(addForceShader, dataRenderTarget);
   swapTexture();
 
-
   // 3. 発散の計算
   divergenceShader.uniforms.uData.value = dataTexture.texture;
   divergenceShader.uniforms.uDeltaT.value = deltaT;
   render(divergenceShader, dataRenderTarget);
   swapTexture();
 
-  // // 4. 圧力の計算（ヤコビ反復を複数回）
-  // for (let i = 0; i < simulationConfig.solverIteration; i++) {
-  //   const shader = pressureShader;
-  //   const uniforms = shader.uniforms;
-  //   uniforms.uData.value = dataTexture.texture;
-  //   render(shader, dataRenderTarget);
-  //   swapTexture();
-  // }
+  // 4. 圧力の計算（ヤコビ反復を複数回）
+  for (let i = 0; i < simulationConfig.solverIteration; i++) {
+    pressureShader.uniforms.uData.value = dataTexture.texture;
+    render(pressureShader, dataRenderTarget);
+    swapTexture();
+  }
 
-  // // 5. 圧力勾配の減算
+  // 5. 圧力勾配の減算
   // subtractGradientShader.uniforms.uData.value = dataTexture.texture;
   // subtractGradientShader.uniforms.uDeltaT.value = deltaT;
-  // render(subtractGradientShader, dataRenderTarget);
+  // render(subtractGradientShader, tempPoissonTexture);
   // swapTexture();
 
   // // 6. 描画：更新された速度場を使って流体の見た目をレンダリングします。

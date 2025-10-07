@@ -47,7 +47,8 @@ void main() {
   // color = color * uScale + uOffset;
 
   // color = vec3(vUv, 0.0);
-  float mag = length(data.xy);
+  // float mag = length(data.xy);
+  float mag = length(vec2(data.z, data.z));
   color = vec3(mag * 1.0);
   gl_FragColor = vec4(color, 1.0);
 }
