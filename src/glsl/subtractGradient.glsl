@@ -5,6 +5,7 @@ precision highp float;
 
 uniform sampler2D uData;
 uniform vec2 uTexelSize;
+uniform float uDeltaT;
 
 varying vec2 vUv;
 
@@ -20,6 +21,6 @@ void main() {
 
   vec2 vel = texture2D(uData, uv).xy;
   vec2 gradP = vec2(right - left, down - up) * 0.5;
-  vel = vel - gradP * 0.014;
+  vel = vel - gradP * uDeltaT;
   gl_FragColor = vec4(vel, data.zw);
 }

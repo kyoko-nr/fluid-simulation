@@ -6,16 +6,14 @@ precision highp float;
 
 uniform sampler2D uData;
 uniform vec2 uTexelSize;
-uniform float uDeltaT;
 uniform float uDissipation;
+uniform float uDeltaT;
 
 varying vec2 vUv;
-
 
 // 移流を計算する
 void main() {
   vec2 ratio = uTexelSize / min(uTexelSize.x, uTexelSize.y); // UV/秒
-  // vec2 uv = gl_FragCoord.xy * uTexelSize;
   vec2 uv = vUv;
   vec4 data = texture2D(uData, uv);
 

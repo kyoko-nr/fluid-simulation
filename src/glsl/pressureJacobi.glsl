@@ -10,10 +10,12 @@ void main() {
   vec2 uv = gl_FragCoord.xy * uTexelSize;
   vec4 data = texture2D(uData, uv);
 
-  float left = sampleNeighborPressureNeumann(uData, uv, uTexelSize, vec2(-2.0, 0.0), data.z);
-  float right = sampleNeighborPressureNeumann(uData, uv, uTexelSize, vec2(2.0, 0.0), data.z);
-  float up = sampleNeighborPressureNeumann(uData, uv, uTexelSize, vec2(0.0, -2.0), data.z);
-  float down = sampleNeighborPressureNeumann(uData, uv, uTexelSize, vec2(0.0, 2.0), data.z);
+  float step = 2.0;
+
+  float left = sampleNeighborPressureNeumann(uData, uv, uTexelSize, vec2(-step, 0.0), data.z);
+  float right = sampleNeighborPressureNeumann(uData, uv, uTexelSize, vec2(step, 0.0), data.z);
+  float up = sampleNeighborPressureNeumann(uData, uv, uTexelSize, vec2(0.0, -step), data.z);
+  float down = sampleNeighborPressureNeumann(uData, uv, uTexelSize, vec2(0.0, step), data.z);
 
   float div = data.w;
 

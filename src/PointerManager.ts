@@ -23,11 +23,14 @@ export class PointerManager extends EventTarget {
   }
 
   public getDelta() {
-    return this.pointer.clone().sub(this.prevPointer)
+    return this.pointer.clone().sub(this.prevPointer);
   }
 
   private onPointerMove = (event: MouseEvent) => {
-    if (Math.abs(this.pointer.x - event.clientX) < THRESHOLD && Math.abs(this.pointer.y - event.clientY) < THRESHOLD) {
+    if (
+      Math.abs(this.pointer.x - event.clientX) < THRESHOLD &&
+      Math.abs(this.pointer.y - event.clientY) < THRESHOLD
+    ) {
       return;
     }
     this.updatePointer(event.clientX, event.clientY);

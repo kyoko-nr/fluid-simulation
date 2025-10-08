@@ -154,16 +154,16 @@ export class DebugVisualizer {
       0,
       this.canvas.width,
       this.canvas.height,
-      this.pixelBuffer
+      this.pixelBuffer,
     );
 
     // ImageDataを作成して2Dキャンバスに描画
     const imageData = new ImageData(
       new Uint8ClampedArray(this.pixelBuffer),
       this.canvas.width,
-      this.canvas.height
+      this.canvas.height,
     );
-    
+
     // WebGLはY軸が上向きなので、上下反転して描画
     this.canvasContext.save();
     this.canvasContext.scale(1, -1);

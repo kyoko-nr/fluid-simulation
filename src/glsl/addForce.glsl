@@ -7,13 +7,11 @@ uniform vec2 uTexelSize;
 uniform vec2 uForceCenter;
 uniform vec2 uForceDeltaV;
 uniform float uForceRadius;
-uniform float uFalloffExp;
 
 varying vec2 vUv;
 
 // 速度に外力を与える
 void main() {
-  // vec2 uv = gl_FragCoord.xy * uTexelSize;
   vec2 uv = vUv;
   vec4 data = texture2D(uData, uv);
 
@@ -24,19 +22,10 @@ void main() {
 
   vec2 vOld = data.xy;
 
-  // 外力を滑らかに減衰させる。(1 - smoothstep)に指数を掛けて中心を鋭く
-  // float t = clamp(len, 0.0, 1.0);
-  // float base = 1.0 - smoothstep(0.0, 1.0, t);
-  // float falloff = pow(base, max(uFalloffExp, 1.0));
-
-  // vec2 vPointer = vOld + uForceDeltaV * falloff;
-
   float d = 1.0-min(len, 1.0);
   d *= d;
 
   vec2 force = applyReflectiveBoundary(uv, uTexelSize, vec2(vOld + uForceDeltaV * d), 1.0);
-
-  // vec2 force = (vOld + uForceDeltaV * d);
 
   gl_FragColor = vec4(force, data.zw);
 }
