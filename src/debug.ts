@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import debugVisFrag from "./glsl/debugVis.glsl";
 import vert from "./glsl/vert.glsl";
+import { simulationConfig } from "./gui";
 
 export class DebugVisualizer {
   private canvas: HTMLCanvasElement;
@@ -68,11 +69,6 @@ export class DebugVisualizer {
     // リサイズ処理
     this.updateSize();
     window.addEventListener("resize", () => this.updateSize());
-
-    // // GUIのセットアップ
-    // if (parentGui) {
-    //   this.setupGui(parentGui);
-    // }
   }
 
   /**
@@ -87,58 +83,16 @@ export class DebugVisualizer {
     this.pixelBuffer = new Uint8Array(width * height * 4);
   }
 
-  // /**
-  //  * GUIコントロールのセットアップ
-  //  */
-  // private setupGui(parentGui: GUI) {
-  //   this.folder = parentGui.addFolder("Debug Visualizer");
-
-  //   this.folder.add(this.config, "enabled").name("表示").onChange((enabled: boolean) => {
-  //     this.canvas.style.display = enabled ? "block" : "none";
-  //   });
-
-  //   const channelOptions = {
-  //     "R チャンネル": 0,
-  //     "G チャンネル": 1,
-  //     "B チャンネル": 2,
-  //     "A チャンネル": 3,
-  //     "RG カラー": 4,
-  //     "GB カラー": 5,
-  //     "RG 大きさ": 6,
-  //     "RG ヒートマップ": 7,
-  //   };
-
-  //   this.folder
-  //     .add(this.config, "channel", channelOptions)
-  //     .name("チャンネル")
-  //     .onChange((value: number) => {
-  //       this.debugShader.uniforms.uChannel.value = value;
-  //     });
-
-  //   this.folder
-  //     .add(this.config, "scale", 0.1, 10.0, 0.1)
-  //     .name("スケール")
-  //     .onChange((value: number) => {
-  //       this.debugShader.uniforms.uScale.value = value;
-  //     });
-
-  //   this.folder
-  //     .add(this.config, "offset", -1.0, 1.0, 0.05)
-  //     .name("オフセット")
-  //     .onChange((value: number) => {
-  //       this.debugShader.uniforms.uOffset.value = value;
-  //     });
-
-  //   this.folder.close();
-  // }
-
   /**
    * テクスチャを描画
    */
   public render(texture: THREE.Texture) {
-    if (!this.config.enabled) {
+    if (!simulationConfig.showDebug) {
+      this.canvas.classList.add("hidden");
       return;
     }
+
+    this.canvas.classList.remove("hidden");
 
     // 共有レンダラーでRenderTargetに描画
     this.debugShader.uniforms.uTexture.value = texture;
@@ -178,8 +132,5 @@ export class DebugVisualizer {
   public dispose() {
     this.debugRenderTarget.dispose();
     this.canvas.remove();
-    // if (this.folder) {
-    //   this.folder.destroy();
-    // }
   }
 }

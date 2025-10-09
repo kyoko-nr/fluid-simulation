@@ -1,6 +1,6 @@
 import * as THREE from "three";
 
-const THRESHOLD = 0.01;
+const THRESHOLD = 0.1;
 
 /**
  * マウス・タッチイベントを管理して座標を保存するユーテリティー
@@ -42,17 +42,3 @@ export class PointerManager extends EventTarget {
     this.pointer.set(x, y);
   };
 }
-
-// export interface PointerManager {
-//   addEventListener(
-//     type: "firstInteraction",
-//     listener: (this: PointerManager, event: Event) => any,
-//     options?: boolean | AddEventListenerOptions,
-//   ): void;
-
-//   removeEventListener(
-//     type: "firstInteraction",
-//     listener: (this: PointerManager, event: Event) => any,
-//     options?: boolean | EventListenerOptions,
-//   ): void;
-// }
