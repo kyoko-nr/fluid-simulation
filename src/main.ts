@@ -8,7 +8,7 @@ import advectVelFrag from "./glsl/advectVelocity.glsl";
 import divergenceFrag from "./glsl/divergence.glsl";
 import pressureJacobiFrag from "./glsl/pressureJacobi.glsl";
 import subtractGradientFrag from "./glsl/subtractGradient.glsl";
-import render2Frag from "./glsl/render2.glsl";
+import renderFrag from "./glsl/render.glsl";
 import vert from "./glsl/vert.glsl";
 
 // シミュレーション用のパラメーター
@@ -18,18 +18,19 @@ const simulationConfig = {
   // 1回のシミュレーションステップで行うヤコビ法の圧力計算の回数。大きいほど安定して正確性が増すが、負荷が高くなる
   solverIteration: 10,
   // マウスを外力として使用する際に影響を与える半径サイズ
-  forceRadius: 12,
+  forceRadius: 18,
   // マウスを外力として使用する際のちからの係数
-  forceCoefficient: 400,
+  forceCoefficient: 100,
   /**
    * 移流時の減衰
    * 1.0に近づけることで高粘度な流体のような見た目にできる
    * 1以上にはしない
    * あくまで粘度っぽさであり、粘性項とは無関係
    */
-  dissipation: 0.995,
+  dissipation: 0.98,
   // シミュレーションの時間ステップ
   deltaT: 0.01,
+  colorStrength: 0.7,
 };
 
 // マウス・タッチイベントを管理するオブジェクト
@@ -70,7 +71,7 @@ await init();
  * 初期化
  */
 async function init() {
-  renderer = new THREE.WebGLRenderer({ antialias: false });
+  renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setPixelRatio(window.devicePixelRatio);
   renderer.setSize(window.innerWidth, window.innerHeight);
   document.body.appendChild(renderer.domElement);
@@ -149,12 +150,12 @@ async function init() {
   // 描画に使用するシェーダーを作成
   renderShader = new THREE.ShaderMaterial({
     vertexShader: vert,
-    fragmentShader: render2Frag,
+    fragmentShader: renderFrag,
     uniforms: {
       uTexture: new THREE.Uniform(null),
       uTextureSize: new THREE.Uniform(new THREE.Vector2()),
       uTimeStep: new THREE.Uniform(0),
-      uColorStrength: new THREE.Uniform(0.5),
+      uColorStrength: new THREE.Uniform(simulationConfig.colorStrength),
     },
   });
 
@@ -268,6 +269,7 @@ function tick(time: number) {
 function setupGui(gui: GUI) {
   const folder = gui.addFolder("Simulation");
 
+  folder.add(simulationConfig, "colorStrength", 0.1, 1.0, 0.1).name("色の強さ");
   folder.add(simulationConfig, "forceRadius", 1, 200, 1).name("外力半径 (px)");
   folder.add(simulationConfig, "forceCoefficient", 0, 1000, 10).name("外力係数");
   folder.add(simulationConfig, "dissipation", 0.8, 1, 0.001).name("減衰");
