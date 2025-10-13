@@ -4,6 +4,8 @@ uniform sampler2D uTexture;
 uniform vec2 uTextureSize;
 uniform float uTimeStep;
 uniform float uColorStrength;
+uniform vec3 uBgColor;
+uniform vec3 uFluidColor;
 
 varying vec2 vUv;
 
@@ -15,10 +17,7 @@ void main() {
   vec2 vel = texture2D(uTexture, uv).xy;
   float len = length(vel) * uColorStrength;
 
-  vec3 color = vec3(0.0);
-  vec3 grey = vec3(0.2, 0.2, 0.2);
-  vec3 white = vec3(1.0);
-  color = mix(grey, white, len);
+  vec3 color = mix(uBgColor, uFluidColor, len);
 
   gl_FragColor = vec4(color, 1.0);
 }

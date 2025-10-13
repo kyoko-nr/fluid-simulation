@@ -1,4 +1,5 @@
 import GUI from "lil-gui";
+import * as THREE from "three";
 
 // シミュレーション用のパラメーター
 export const simulationConfig = {
@@ -23,6 +24,10 @@ export const simulationConfig = {
   colorStrength: 0.7,
   // デバッグ表示の有無
   showDebug: true,
+  // 背景色
+  bgColor: new THREE.Color(0.2, 0.2, 0.2),
+  // 流体の色
+  fluidColor: new THREE.Color(1, 1, 1),
 };
 
 const gui = new GUI();
@@ -33,7 +38,8 @@ const gui = new GUI();
 export const setupGui = () => {
   const folder = gui.addFolder("Simulation");
 
-  folder.add(simulationConfig, "colorStrength", 0.1, 1.0, 0.1).name("色の強さ");
+  folder.addColor(simulationConfig, "bgColor").name("背景色");
+  folder.addColor(simulationConfig, "fluidColor").name("流体の色");
   folder.add(simulationConfig, "forceRadius", 1, 200, 1).name("外力半径 (px)");
   folder.add(simulationConfig, "forceCoefficient", 0, 1000, 10).name("外力係数");
   folder.add(simulationConfig, "dissipation", 0.8, 1, 0.001).name("減衰");

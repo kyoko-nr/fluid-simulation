@@ -134,6 +134,8 @@ async function init() {
       uTextureSize: new THREE.Uniform(new THREE.Vector2()),
       uTimeStep: new THREE.Uniform(0),
       uColorStrength: new THREE.Uniform(simulationConfig.colorStrength),
+      uBgColor: new THREE.Uniform(simulationConfig.bgColor),
+      uFluidColor: new THREE.Uniform(simulationConfig.fluidColor),
     },
   });
 
